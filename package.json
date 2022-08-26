@@ -13,6 +13,7 @@
 		"apollo-server-core": "3.10.1",
 		"apollo-server-koa": "3.10.1",
 		"graphql": "16.6.0",
+		"graphql-subscriptions": "^2.0.0",
 		"graphql-ws": "5.10.1",
 		"koa": "2.13.4",
 		"nodemon": "2.0.19",
