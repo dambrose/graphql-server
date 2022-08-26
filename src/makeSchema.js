@@ -9,7 +9,8 @@ const TYPES = [
 	'Query',
 	'Mutation',
 	'Subscription',
-	'Upload'
+	'Upload',
+	'File'
 ];
 
 export default async () => {

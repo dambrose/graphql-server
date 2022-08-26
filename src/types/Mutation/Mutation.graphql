@@ -2,9 +2,3 @@ type Mutation {
 	echo(message: String!): String!
 	upload(files: [Upload!]!): [File]
 }
-
-type File {
-	filename: String!
-	mimetype: String!
-	path: String!
-}
