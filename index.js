@@ -13,7 +13,7 @@ const wsServer = new WebSocketServer({server: httpServer, path});
 
 const schema = await makeSchema();
 
-const apolloServer = createApolloServer(httpServer, wsServer, schema);
+const apolloServer = createApolloServer({httpServer, wsServer, schema});
 await apolloServer.start();
 
 const app = new Koa();

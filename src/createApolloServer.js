@@ -6,7 +6,7 @@ import {
 } from 'apollo-server-core';
 import makeContext from './makeContext.js';
 
-export default function createApolloServer(httpServer, wsServer, schema) {
+export default function createApolloServer({httpServer, wsServer, schema}) {
 
 	const graphqlWsServer = wsServer ? useServer({
 		schema,
@@ -24,20 +24,8 @@ export default function createApolloServer(httpServer, wsServer, schema) {
 	return new ApolloServer({
 		schema,
 		plugins: [
-
-			// Proper shutdown for the HTTP server.
 			ApolloServerPluginDrainHttpServer({httpServer}),
-
-			// Proper shutdown for the WebSocket server.
-			{
-				async serverWillStart() {
-					return {
-						async drainServer() {
-							await graphqlWsServer.dispose();
-						}
-					};
-				}
-			},
+			ShutdownWebSocketServer(graphqlWsServer),
 			ApolloServerPluginLandingPageGraphQLPlayground()
 		],
 		async context({ctx}) {
@@ -46,3 +34,15 @@ export default function createApolloServer(httpServer, wsServer, schema) {
 	});
 
 };
+
+function ShutdownWebSocketServer(graphqlWsServer) {
+	return {
+		async serverWillStart() {
+			return {
+				async drainServer() {
+					await graphqlWsServer.dispose();
+				}
+			};
+		}
+	};
+}
