@@ -1,7 +1,7 @@
 import {join} from 'path';
 import fs from 'fs';
 
-export default (files) => {
+export default files => {
 	return Promise.all(files.map(async file => {
 
 		const {filename, mimetype, createReadStream} = await file;

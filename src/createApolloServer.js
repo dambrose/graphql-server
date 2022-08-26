@@ -6,7 +6,7 @@ import {
 } from 'apollo-server-core';
 import makeContext from './makeContext.js';
 
-export default function createApolloServer({httpServer, wsServer, schema}) {
+export default ({httpServer, wsServer, schema}) => {
 
 	const graphqlWsServer = wsServer ? useServer({
 		schema,

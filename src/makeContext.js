@@ -1,4 +1,4 @@
-export default function makeContext() {
+export default async () => {
 
 	return {};
 

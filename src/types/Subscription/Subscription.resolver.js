@@ -4,7 +4,7 @@ export default {
 	Subscription: {
 		echo: {
 			resolve(payload) {
-				return payload.echo;
+				return payload;
 			},
 			subscribe() {
 				return pubSub.asyncIterator('ECHO');
