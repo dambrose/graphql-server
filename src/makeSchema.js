@@ -8,7 +8,8 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const TYPES = [
 	'Query',
 	'Mutation',
-	'Subscription'
+	'Subscription',
+	'Upload'
 ];
 
 export default async function makeSchema() {

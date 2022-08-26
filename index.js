@@ -3,6 +3,7 @@ import http from 'http';
 import {WebSocketServer} from 'ws';
 import makeSchema from './src/makeSchema.js';
 import createApolloServer from './src/createApolloServer.js';
+import graphqlUploadKoa from 'graphql-upload/graphqlUploadKoa.mjs';
 
 const port = 3000;
 const path = '/graphql';
@@ -19,7 +20,9 @@ const app = new Koa();
 
 app.proxy = true;
 
-app.use(apolloServer.getMiddleware({path}));
+app
+	.use(graphqlUploadKoa())
+	.use(apolloServer.getMiddleware({path}));
 
 apolloServer.applyMiddleware({app, path});
 
