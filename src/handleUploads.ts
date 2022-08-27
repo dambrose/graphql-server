@@ -1,5 +1,5 @@
 import {join} from 'path';
-import fs from 'fs';
+import {createWriteStream} from 'fs';
 
 export default files => {
 	return Promise.all(files.map(async file => {
@@ -13,7 +13,7 @@ export default files => {
 			readStream.on('end', resolve);
 			readStream.on('error', reject);
 
-			const outputStream = fs.createWriteStream(path);
+			const outputStream = createWriteStream(path);
 			outputStream.on('error', reject);
 
 			readStream.pipe(outputStream);

@@ -1,5 +1,5 @@
 import Koa from 'koa';
-import http from 'http';
+import {createServer} from 'http';
 import {WebSocketServer} from 'ws';
 import makeSchema from './src/makeSchema.js';
 import createApolloServer from './src/createApolloServer.js';
@@ -8,7 +8,7 @@ import graphqlUploadKoa from 'graphql-upload/graphqlUploadKoa.mjs';
 const port = 3000;
 const path = '/graphql';
 
-const httpServer = http.createServer();
+const httpServer = createServer();
 const wsServer = new WebSocketServer({server: httpServer, path});
 
 const schema = await makeSchema();
@@ -32,10 +32,6 @@ app.use(ctx => {
 
 httpServer.on('request', app.callback());
 
-httpServer.listen({port}, err => {
-	if (err) {
-		console.error(err.stack);
-		process.exit(1);
-	}
+httpServer.listen({port}, () => {
 	console.log(`server listening http://localhost:${port}${path}`);
 });
