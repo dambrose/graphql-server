@@ -1,13 +1,13 @@
 {
 	"compilerOptions": {
-		"module": "ESNext",
-		"target": "ESNext",
+		"module": "Node16",
+		"target": "ES2021",
 		"sourceMap": true,
-		"moduleResolution": "Node16"
+		"moduleResolution": "node16",
+		"rootDir": "./src",
+		"skipLibCheck": true,
+		"outDir": "./dist"
 	},
-	"exclude": [
-		"node_modules"
-	],
 	"ts-node": {
 		"esm": true
 	}

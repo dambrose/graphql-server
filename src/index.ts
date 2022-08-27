@@ -1,8 +1,8 @@
 import Koa from 'koa';
 import {createServer} from 'http';
 import {WebSocketServer} from 'ws';
-import makeSchema from './src/makeSchema.js';
-import createApolloServer from './src/createApolloServer.js';
+import makeSchema from './makeSchema.js';
+import createApolloServer from './createApolloServer.js';
 import graphqlUploadKoa from 'graphql-upload/graphqlUploadKoa.mjs';
 
 const port = 3000;
