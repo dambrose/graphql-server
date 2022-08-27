@@ -4,6 +4,7 @@ import {WebSocketServer} from 'ws';
 import makeSchema from './makeSchema.js';
 import createApolloServer from './createApolloServer.js';
 import graphqlUploadKoa from 'graphql-upload/graphqlUploadKoa.mjs';
+import healthcheck from './healthcheck.js';
 
 const port = 3000;
 const path = '/graphql';
@@ -21,14 +22,11 @@ const app = new Koa();
 app.proxy = true;
 
 app
+	.use(healthcheck())
 	.use(graphqlUploadKoa())
 	.use(apolloServer.getMiddleware({path}));
 
 apolloServer.applyMiddleware({app, path});
-
-app.use(ctx => {
-	ctx.body = 'Hello World!';
-});
 
 httpServer.on('request', app.callback());
 
