@@ -8,18 +8,18 @@ import makeContext from './makeContext.js';
 
 export default ({httpServer, wsServer, schema}) => {
 
-	const graphqlWsServer = wsServer ? useServer({
+	const graphqlWsServer = useServer({
 		schema,
-		onConnect() {
-			console.log('socket connected');
+		onConnect({connectionParams}) {
+			console.log(`socket connected ${JSON.stringify(connectionParams)}`);
+		},
+		onDisconnect({connectionParams}) {
+			console.log(`socket disconnected ${JSON.stringify(connectionParams)}`);
 		},
 		context: async ({connectionParams}) => {
 			return makeContext({connectionParams});
 		}
-	}, wsServer) : {
-		async dispose() {
-		}
-	};
+	}, wsServer);
 
 	return new ApolloServer({
 		schema,
