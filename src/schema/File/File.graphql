@@ -2,4 +2,5 @@ type File {
 	filename: String!
 	mimetype: String!
 	size: Int!
+	hash: String!
 }

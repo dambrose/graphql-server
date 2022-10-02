@@ -7,7 +7,7 @@ export default {
 			await pubSub.publish('ECHO', message);
 			return message;
 		},
-		upload(root, {files}) {
+		upload(_, {files}) {
 			return handleUploads(files);
 		}
 	}
