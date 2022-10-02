@@ -1,5 +1,6 @@
 import {join} from 'path';
 import {createWriteStream} from 'fs';
+import {pipeline} from 'stream/promises';
 
 export default files => {
 	return Promise.all(files.map(async file => {
@@ -8,16 +9,10 @@ export default files => {
 
 		const path = join('/tmp', filename);
 
-		await new Promise((resolve, reject) => {
-			const readStream = createReadStream();
-			readStream.on('end', resolve);
-			readStream.on('error', reject);
-
-			const outputStream = createWriteStream(path);
-			outputStream.on('error', reject);
-
-			readStream.pipe(outputStream);
-		});
+		await pipeline(
+			createReadStream(),
+			createWriteStream(path)
+		);
 
 		return {
 			filename,
