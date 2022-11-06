@@ -1,4 +1,4 @@
-import add from './add';
+import add from '../src/lib/add';
 
 describe('add', () => {
 
