@@ -24,7 +24,7 @@ import git from '../src/lib/gitdb.js';
 
 (async () => {
 
-	const db = await git('../db.git', 'main');
+	const db = await git('/Users/dennis/Projects/db.git', 'main');
 
 	await db.setUser('dennisa', 'dennisa@magnatag.com');
 

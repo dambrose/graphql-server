@@ -1,4 +1,6 @@
 type Mutation {
 	echo(message: String!): String!
 	upload(files: [Upload!]!): [File]
+
+	save(path: String, file: Upload!): Boolean
 }

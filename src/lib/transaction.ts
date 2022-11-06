@@ -1,4 +1,4 @@
-import defer from './deferred';
+import defer from './deferred.js';
 
 const transactions = [];
 
