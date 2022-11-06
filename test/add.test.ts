@@ -1,4 +1,4 @@
-import add from '../src/lib/add';
+import add from '../src/lib/add.js';
 
 describe('add', () => {
 
