@@ -2,5 +2,10 @@ type Mutation {
 	echo(message: String!): String!
 	upload(files: [Upload!]!): [File]
 
-	save(path: String, file: Upload!): Boolean
+	save(path: String!, name:String!, email:String!, file: Upload!): Boolean
+	mkdir(path: String!, name:String!, email:String!): Boolean
+	rmdir(path: String!, name:String!, email:String!): Boolean
+	rm(path: String!, name:String!, email:String!): Boolean
+	cp(fromPath: String!, toPath: String!, name:String!, email:String!): Boolean
+	mv(fromPath: String!, toPath: String!, name:String!, email:String!): Boolean
 }

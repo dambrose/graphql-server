@@ -12,11 +12,46 @@ export default {
 		upload(_, {files}) {
 			return Promise.all(files.map(handleUpload));
 		},
-		async save(_, {path, file}) {
+		async save(_, {path, name, email, file}) {
 			const {createReadStream} = await file;
 			await transaction(async () => {
-				await db.setUser('dennisa', 'dennisa@magnatag.com');
+				await db.setUser(name, email);
 				await db.save(createReadStream(), path);
+			});
+			return true;
+		},
+		async mkdir(_, {path, name, email}) {
+			await transaction(async () => {
+				await db.setUser(name, email);
+				await db.mkdir(path);
+			});
+			return true;
+		},
+		async rmdir(_, {path, name, email}) {
+			await transaction(async () => {
+				await db.setUser(name, email);
+				await db.rmdir(path);
+			});
+			return true;
+		},
+		async rm(_, {path, name, email}) {
+			await transaction(async () => {
+				await db.setUser(name, email);
+				await db.rm(path);
+			});
+			return true;
+		},
+		async cp(_, {fromPath, toPath, name, email}) {
+			await transaction(async () => {
+				await db.setUser(name, email);
+				await db.cp(fromPath, toPath);
+			});
+			return true;
+		},
+		async mv(_, {fromPath, toPath, name, email}) {
+			await transaction(async () => {
+				await db.setUser(name, email);
+				await db.mv(fromPath, toPath);
 			});
 			return true;
 		}
