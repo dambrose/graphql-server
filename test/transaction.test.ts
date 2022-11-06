@@ -1,8 +1,6 @@
 import {describe, expect, test} from '@jest/globals';
 
-import transaction from './transaction';
-
-const sum = (a, b) => a + b;
+import transaction from '../src/lib/transaction.js';
 
 describe('transaction', () => {
 
