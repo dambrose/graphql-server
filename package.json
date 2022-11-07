@@ -19,6 +19,7 @@
 		"graphql-subscriptions": "2.0.0",
 		"graphql-upload": "16.0.1",
 		"graphql-ws": "5.10.1",
+		"jsonwebtoken": "8.5.1",
 		"koa": "2.13.4",
 		"ws": "8.8.1"
 	},
