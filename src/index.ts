@@ -6,7 +6,7 @@ import createApolloServer from './createApolloServer.js';
 import graphqlUploadKoa from 'graphql-upload/graphqlUploadKoa.mjs';
 import healthcheck from './healthcheck.js';
 
-const port = 3000;
+const port = parseInt(process.env.PORT || '3000');
 const path = '/graphql';
 
 const httpServer = createServer();
