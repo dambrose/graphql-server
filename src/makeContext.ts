@@ -1,3 +1,6 @@
+import parseAuthorization from './lib/parseAuthorization.js';
+import {verify} from './lib/jwt.js';
+
 type MakeContextParams = {
 	ctx?: any,
 	connectionParams?: any
@@ -5,6 +8,7 @@ type MakeContextParams = {
 
 export default async ({ctx, connectionParams}: MakeContextParams) => {
 
-	return {};
+	const token = parseAuthorization(ctx.get('authorization'));
+	return await verify(token);
 
 }

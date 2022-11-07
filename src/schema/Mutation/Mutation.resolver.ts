@@ -1,5 +1,6 @@
 import pubSub from '../../pubSub.js';
-import handleUploads from '../../handleUploads.js';
+import handleUpload from '../../handleUpload.js';
+import {sign} from '../../lib/jwt.js';
 
 export default {
 	Mutation: {
@@ -8,7 +9,10 @@ export default {
 			return message;
 		},
 		upload(_, {files}) {
-			return handleUploads(files);
+			return Promise.all(files.map(handleUpload));
+		},
+		jwtSign(_, {name, email}) {
+			return sign({name, email});
 		}
 	}
 };

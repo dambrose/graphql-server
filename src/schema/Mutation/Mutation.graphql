@@ -1,4 +1,5 @@
 type Mutation {
 	echo(message: String!): String!
 	upload(files: [Upload!]!): [File]
+	jwtSign(name:String!,email:String!): String
 }

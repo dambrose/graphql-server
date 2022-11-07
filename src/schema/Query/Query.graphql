@@ -1,3 +1,9 @@
 type Query {
 	hello: String
+	jwtVerify(token:String!): User
+}
+
+type User {
+	name: String!
+	email: String!
 }
