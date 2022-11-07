@@ -1,3 +1,8 @@
 import gitdb from '../lib/gitdb.js';
 
-export default await gitdb('../db.git', 'main');
+const {
+	GIT_PATH = `${process.env.HOME}/db.git`,
+	GIT_BRANCH = 'main'
+} = process.env;
+
+export default await gitdb(GIT_PATH, GIT_BRANCH);

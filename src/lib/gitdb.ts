@@ -35,6 +35,7 @@ export default async (repository, branch) => {
 		const cmd = `git log -1 --pretty="format:%ci" -- "${filePath}"`;
 		const child = spawn(cmd, {shell: true, cwd: repository});
 
+		// @ts-ignore
 		const [modified] = (await streamToString(child.stdout)).split('\n');
 		return modified;
 	}
@@ -43,6 +44,7 @@ export default async (repository, branch) => {
 		const cmd = `git rev-parse "${branch}:${path.replace(/"/g, '\\"')}"`;
 		const child = spawn(cmd, {shell: true, cwd: repository});
 
+		// @ts-ignore
 		const [hash] = (await streamToString(child.stdout)).split('\n');
 		return hash;
 	}
@@ -51,6 +53,7 @@ export default async (repository, branch) => {
 		const cmd = `git cat-file -t "${branch}:${filePath.replace(/"/g, '\\"')}"`;
 		const child = spawn(cmd, {shell: true, cwd: repository});
 
+		// @ts-ignore
 		const [type] = (await streamToString(child.stdout)).split('\n');
 		return type;
 	}
@@ -65,6 +68,7 @@ export default async (repository, branch) => {
 	async function gitLsTree(treePath, recursive) {
 		const cmd = `git ls-tree${recursive ? ' -r ' : ' '}"${branch}:${treePath.replace(/"/g, '\\"')}"`;
 		const child = spawn(cmd, {shell: true, cwd: repository});
+		// @ts-ignore
 		const dir = (await streamToString(child.stdout)).split('\n').filter(s => !!s);
 
 		return (await Promise.all(dir.map(async s => {
@@ -90,6 +94,7 @@ export default async (repository, branch) => {
 
 		stream.pipe(child.stdin);
 
+		// @ts-ignore
 		const [hash] = (await streamToString(child.stdout)).split('\n');
 		return hash;
 	}
@@ -137,6 +142,7 @@ export default async (repository, branch) => {
 		const cmd = 'git write-tree';
 		const child = spawn(cmd, {shell: true, cwd: repository});
 
+		// @ts-ignore
 		const [tree] = (await streamToString(child.stdout)).split('\n');
 		return tree;
 	}
@@ -148,6 +154,7 @@ export default async (repository, branch) => {
 
 		stringToStream(message).pipe(child.stdin);
 
+		// @ts-ignore
 		const [commit] = (await streamToString(child.stdout)).split('\n');
 		return commit;
 	}
