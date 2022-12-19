@@ -1,6 +1,6 @@
 import defer from './deferred.js';
 
-const transactions = [];
+const transactions: Promise<any>[] = [];
 
 export default async function begin(actions: () => Promise<any>): Promise<any> {
 	const {promise, resolve} = defer();

@@ -6,11 +6,11 @@ import createApolloServer from './createApolloServer.js';
 import graphqlUploadKoa from 'graphql-upload/graphqlUploadKoa.mjs';
 import healthcheck from './healthcheck.js';
 
-const port = parseInt(process.env.PORT || '3000');
-const path = '/graphql';
+const port: number = parseInt(process.env.PORT || '3000');
+const path: string = '/graphql';
 
 const httpServer = createServer();
-const wsServer = new WebSocketServer({server: httpServer, path});
+const wsServer: WebSocketServer = new WebSocketServer({server: httpServer, path});
 
 const schema = await makeSchema();
 

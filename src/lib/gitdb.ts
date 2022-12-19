@@ -3,11 +3,51 @@ import {join, dirname, basename} from 'path';
 import streamToString from './streamToString.js';
 import stringToStream from './stringToStream.js';
 
-export default async (repository, branch) => {
+interface TreeItem {
+	type: string;
+	name: string;
+	hash: string;
+	path: string;
+	relPath: string;
+}
 
-	async function gitSetUserName(name) {
+interface FileOrFolder {
+	type: string;
+	name: string;
+	hash: string;
+	path: string;
+	children?: FileOrFolder[];
+}
+
+interface SearchResult {
+	type: string;
+	name: string;
+	path: string;
+}
+
+type LogProgress = (progress: number, message: string) => void
+
+interface GitDb {
+	setUser: (name: string, email: string) => Promise<void>;
+	modified: (path: string) => Promise<Date>;
+	type: (path: string) => Promise<'file' | 'folder'>;
+	exists: (path: string) => Promise<boolean>;
+	save: (data: string | NodeJS.ReadableStream, filePath: string) => Promise<{ object: string, tree: string, commit: string }>;
+	rm: (filePath: string) => Promise<{ tree: string, commit: string }>;
+	mv: (fromPath: string, toPath: string, onProgress?: LogProgress) => Promise<{ tree: string, commit: string }>;
+	mkdir: (path: string) => Promise<{ object: string, tree: string, commit: string }>;
+	rmdir: (path: string, onProgress?: LogProgress) => Promise<{ tree: string, commit: string }>;
+	ls: (treePath: string, recursive: boolean) => Promise<FileOrFolder[]>;
+	cat: (filePath: string) => Promise<string>;
+	cp: (fromPath: string, toPath: string, onProgress?: LogProgress) => Promise<{ tree: string, commit: string }>;
+	search: (text: string, path: string) => Promise<SearchResult[]>;
+}
+
+export default async (repository: string, branch: string): Promise<GitDb> => {
+
+	async function gitSetUserName(name: string) {
 		await new Promise((resolve, reject) => {
-			const cmd = `git config --local user.name "${name}"`;
+			const cmd: string = `git config --local user.name "${name}"`;
 			const child = spawn(cmd, {shell: true, cwd: repository});
 			child.on('exit', code => {
 				if (code)
@@ -18,9 +58,9 @@ export default async (repository, branch) => {
 		});
 	}
 
-	async function gitSetUserEmail(email) {
+	async function gitSetUserEmail(email: string) {
 		await new Promise((resolve, reject) => {
-			const cmd = `git config --local user.email "${email}"`;
+			const cmd: string = `git config --local user.email "${email}"`;
 			const child = spawn(cmd, {shell: true, cwd: repository});
 			child.on('exit', code => {
 				if (code)
@@ -31,52 +71,48 @@ export default async (repository, branch) => {
 		});
 	}
 
-	async function gitModified(filePath) {
-		const cmd = `git log -1 --pretty="format:%ci" -- "${filePath}"`;
+	async function gitModified(filePath: string): Promise<Date> {
+		const cmd: string = `git log -1 --pretty="format:%ci" -- "${filePath}"`;
 		const child = spawn(cmd, {shell: true, cwd: repository});
 
-		// @ts-ignore
-		const [modified] = (await streamToString(child.stdout)).split('\n');
-		return modified;
+		const [modified]: string[] = (await streamToString(child.stdout)).split('\n');
+		return new Date(modified);
 	}
 
-	async function gitRevParse(path) {
-		const cmd = `git rev-parse "${branch}:${path.replace(/"/g, '\\"')}"`;
+	async function gitRevParse(path: string): Promise<string> {
+		const cmd: string = `git rev-parse "${branch}:${path.replace(/"/g, '\\"')}"`;
 		const child = spawn(cmd, {shell: true, cwd: repository});
 
-		// @ts-ignore
-		const [hash] = (await streamToString(child.stdout)).split('\n');
+		const [hash]: string[] = (await streamToString(child.stdout)).split('\n');
 		return hash;
 	}
 
-	async function gitType(filePath) {
-		const cmd = `git cat-file -t "${branch}:${filePath.replace(/"/g, '\\"')}"`;
+	async function gitType(filePath: string): Promise<string> {
+		const cmd: string = `git cat-file -t "${branch}:${filePath.replace(/"/g, '\\"')}"`;
 		const child = spawn(cmd, {shell: true, cwd: repository});
 
-		// @ts-ignore
-		const [type] = (await streamToString(child.stdout)).split('\n');
+		const [type]: string[] = (await streamToString(child.stdout)).split('\n');
 		return type;
 	}
 
-	function gitCatFile(filePath) {
-		const cmd = `git cat-file -p "${branch}:${filePath.replace(/"/g, '\\"')}"`;
+	function gitCatFile(filePath: string): Promise<string> {
+		const cmd: string = `git cat-file -p "${branch}:${filePath.replace(/"/g, '\\"')}"`;
 		const child = spawn(cmd, {shell: true, cwd: repository});
 
 		return streamToString(child.stdout);
 	}
 
-	async function gitLsTree(treePath, recursive) {
-		const cmd = `git ls-tree${recursive ? ' -r ' : ' '}"${branch}:${treePath.replace(/"/g, '\\"')}"`;
+	async function gitLsTree(treePath: string, recursive: boolean): Promise<TreeItem[]> {
+		const cmd: string = `git ls-tree${recursive ? ' -r ' : ' '}"${branch}:${treePath.replace(/"/g, '\\"')}"`;
 		const child = spawn(cmd, {shell: true, cwd: repository});
-		// @ts-ignore
-		const dir = (await streamToString(child.stdout)).split('\n').filter(s => !!s);
+		const dir: string[] = (await streamToString(child.stdout)).split('\n').filter(s => !!s);
 
 		return (await Promise.all(dir.map(async s => {
-			const [meta, gitPath] = s.split('\t');
-			const relPath = gitPath.replace(/^"|"$|\\/g, '');
-			const name = basename(relPath);
-			const [, type, hash] = meta.split(' ');
-			const path = join(treePath, relPath);
+			const [meta, gitPath]: string[] = s.split('\t');
+			const relPath: string = gitPath.replace(/^"|"$|\\/g, '');
+			const name: string = basename(relPath);
+			const [, type, hash]: string[] = meta.split(' ');
+			const path: string = join(treePath, relPath);
 			return {
 				type,
 				hash,
@@ -87,126 +123,120 @@ export default async (repository, branch) => {
 		})));
 	}
 
-	async function gitHashObject(stream) {
+	async function gitHashObject(stream: NodeJS.ReadableStream): Promise<string> {
 
-		const cmd = 'git hash-object --stdin -w';
+		const cmd: string = 'git hash-object --stdin -w';
 		const child = spawn(cmd, {shell: true, cwd: repository});
 
 		stream.pipe(child.stdin);
 
-		// @ts-ignore
-		const [hash] = (await streamToString(child.stdout)).split('\n');
+		const [hash]: string[] = (await streamToString(child.stdout)).split('\n');
 		return hash;
 	}
 
-	function gitReadTree(args = '--empty') {
+	function gitReadTree(branch: string = '--empty'): Promise<void> {
 		return new Promise((resolve, reject) => {
-			const cmd = `git read-tree ${args}`;
+			const cmd: string = `git read-tree ${branch}`;
 			const child = spawn(cmd, {shell: true, cwd: repository});
 			child.on('exit', code => {
 				if (code)
 					reject(new Error(`Command [${cmd}] exited with code: ${code}`));
 				else
-					resolve(null);
+					resolve();
 			});
 		});
 	}
 
-	function gitAddBlobToIndex(hash, fileName) {
+	function gitAddBlobToIndex(hash: string, fileName: string): Promise<void> {
 		return new Promise((resolve, reject) => {
-			const cmd = `git update-index --add --cacheinfo 100644,${hash},"${fileName.replace(/"/g, '\\"')}"`;
+			const cmd: string = `git update-index --add --cacheinfo 100644,${hash},"${fileName.replace(/"/g, '\\"')}"`;
 			const child = spawn(cmd, {shell: true, cwd: repository});
 			child.on('exit', code => {
 				if (code)
 					reject(new Error(`Command [${cmd}] exited with code: ${code}`));
 				else
-					resolve(null);
+					resolve();
 			});
 		});
 	}
 
-	function gitRemoveBlobFromIndex(filePath) {
+	function gitRemoveBlobFromIndex(filePath: string): Promise<void> {
 		return new Promise((resolve, reject) => {
-			const cmd = `git rm "${filePath.replace(/"/g, '\\"').replace(/^-/, '\\-')}" --cached`;
+			const cmd: string = `git rm "${filePath.replace(/"/g, '\\"').replace(/^-/, '\\-')}" --cached`;
 			const child = spawn(cmd, {shell: true, cwd: repository});
 			child.on('exit', code => {
 				if (code)
 					reject(new Error(`Command [${cmd}] exited with code: ${code}`));
 				else
-					resolve(null);
+					resolve();
 			});
 		});
 	}
 
-	async function gitWriteTree() {
-		const cmd = 'git write-tree';
+	async function gitWriteTree(): Promise<string> {
+		const cmd: string = 'git write-tree';
 		const child = spawn(cmd, {shell: true, cwd: repository});
 
-		// @ts-ignore
-		const [tree] = (await streamToString(child.stdout)).split('\n');
+		const [tree]: string[] = (await streamToString(child.stdout)).split('\n');
 		return tree;
 	}
 
-	async function gitCommitTree(tree, message) {
+	async function gitCommitTree(tree: string, message: string): Promise<string> {
 
-		const cmd = `git commit-tree ${tree} -p ${branch}`;
+		const cmd: string = `git commit-tree ${tree} -p ${branch}`;
 		const child = spawn(cmd, {shell: true, cwd: repository});
 
 		stringToStream(message).pipe(child.stdin);
 
-		// @ts-ignore
-		const [commit] = (await streamToString(child.stdout)).split('\n');
+		const [commit]: string[] = (await streamToString(child.stdout)).split('\n');
 		return commit;
 	}
 
-	function gitUpdateRef(commit) {
+	function gitUpdateRef(commit: string): Promise<void> {
 		return new Promise((resolve, reject) => {
-			const cmd = `git update-ref refs/heads/${branch} ${commit}`;
+			const cmd: string = `git update-ref refs/heads/${branch} ${commit}`;
 			const child = spawn(cmd, {shell: true, cwd: repository});
 			child.on('exit', code => {
 				if (code)
 					reject(new Error(`Command [${cmd}] exited with code: ${code}`));
 				else
-					resolve(null);
+					resolve();
 			});
 		});
 	}
 
 	// public functions
 
-	async function setUser(name, email) {
+	async function setUser(name: string, email: string): Promise<void> {
 		await gitSetUserName(name);
 		await gitSetUserEmail(email);
 	}
 
-	function exists(path) {
+	function exists(path: string): Promise<boolean> {
 		return new Promise(resolve => {
 			gitType(path).then(type => resolve(!!type)).catch(() => resolve(false));
 		});
 	}
 
-	async function type(path) {
-		const type = await gitType(path);
+	async function type(path: string): Promise<'file' | 'folder'> {
+		const type: string = await gitType(path);
 		if (!type) throw new Error(`"${path}" does not exist`);
 		return type === 'blob' ? 'file' : type === 'tree' ? 'folder' : null;
 	}
 
-	async function modified(path) {
-		return new Date(await gitModified(path));
-	}
-
-	async function cat(filePath) {
+	async function cat(filePath: string): Promise<string> {
 		if (await gitType(filePath) === 'blob')
 			return await gitCatFile(filePath);
 	}
 
-	async function ls(treePath, recursive) {
+	async function ls(treePath: string, recursive: boolean): Promise<FileOrFolder[]> {
 		if (await gitType(treePath) === 'tree') {
-			const dir = await gitLsTree(treePath, false);
-			return (await Promise.all(dir.map(async ({type, hash, name, path}) => {
-				const children = recursive && type === 'tree' ? await ls(path, true) : undefined;
+			const dir: TreeItem[] = await gitLsTree(treePath, false);
+			return (await Promise.all(dir.map(async ({type: gitType, hash, name, path}: TreeItem) => {
+				const type: string = gitType === 'blob' ? 'file' : gitType === 'tree' ? 'folder' : null;
+				const children: FileOrFolder[] = recursive && gitType === 'tree' ? await ls(path, true) : undefined;
 				return {
-					type: type === 'blob' ? 'file' : type === 'tree' ? 'folder' : null,
+					type,
 					hash,
 					name,
 					path,
@@ -216,22 +246,22 @@ export default async (repository, branch) => {
 		}
 	}
 
-	async function save(data, filePath) {
+	async function save(data: string | NodeJS.ReadableStream, filePath: string): Promise<{ object: string, tree: string, commit: string }> {
 
-		const dir = dirname(filePath);
+		const dir: string = dirname(filePath);
 
 		if (dir !== '.' && await gitType(dir) !== 'tree')
 			throw new Error(`save: "${filePath}", directory "${dir}" does not exist`);
 
-		const stream = typeof data === 'string' ? stringToStream(data) : data;
+		const stream: NodeJS.ReadableStream = typeof data === 'string' ? stringToStream(data) : data;
 
-		const object = await gitHashObject(stream);
+		const object: string = await gitHashObject(stream);
 
 		await gitAddBlobToIndex(object, filePath);
 
-		const tree = await gitWriteTree();
+		const tree: string = await gitWriteTree();
 
-		const commit = await gitCommitTree(tree, `save: ${filePath}`);
+		const commit: string = await gitCommitTree(tree, `save: ${filePath}`);
 
 		await gitUpdateRef(commit);
 
@@ -239,91 +269,92 @@ export default async (repository, branch) => {
 
 	}
 
-	async function rm(filePath) {
+	async function rm(filePath: string): Promise<{ tree: string, commit: string }> {
 
 		if (await gitType(filePath) !== 'blob')
 			throw new Error(`rm: "${filePath}" is not a blob`);
 
 		await gitRemoveBlobFromIndex(filePath);
 
-		const tree = await gitWriteTree();
+		const tree: string = await gitWriteTree();
 
-		const commit = await gitCommitTree(tree, `rm: ${filePath}`);
+		const commit: string = await gitCommitTree(tree, `rm: ${filePath}`);
 
 		await gitUpdateRef(commit);
 
 		return {tree, commit};
 	}
 
-	async function mkdir(path) {
-		if (!await gitType(path)) {
+	async function mkdir(path: string): Promise<{ object: string, tree: string, commit: string }> {
 
-			const stream = stringToStream('');
+		if (await gitType(path)) throw new Error(`Error: ${path} exists`);
 
-			const object = await gitHashObject(stream);
+		const stream: NodeJS.ReadableStream = stringToStream('');
 
-			await gitAddBlobToIndex(object, join(path, '.dir'));
+		const object: string = await gitHashObject(stream);
 
-			const tree = await gitWriteTree();
+		await gitAddBlobToIndex(object, join(path, '.dir'));
 
-			const commit = await gitCommitTree(tree, `mkdir: ${path}`);
+		const tree: string = await gitWriteTree();
 
-			await gitUpdateRef(commit);
+		const commit: string = await gitCommitTree(tree, `mkdir: ${path}`);
 
-			return {object, tree, commit};
-		}
+		await gitUpdateRef(commit);
+
+		return {object, tree, commit};
+
 	}
 
-	function logProgress(progress, message) {
+	function logProgress(progress: number, message: string): void {
 		console.log(`${Math.round(progress * 100)}% done, ${message}`);
 	}
 
-	async function rmdir(path, onProgress = logProgress) {
-		if (await gitType(path) === 'tree') {
+	async function rmdir(path: string, onProgress: LogProgress = logProgress): Promise<{ tree: string, commit: string }> {
+		if (await gitType(path) !== 'tree') throw new Error(`${path} is not a folder`);
 
-			const objects = await gitLsTree(path, true);
-			let i = 0;
-			for (const {path} of objects) {
-				await gitRemoveBlobFromIndex(path);
-				onProgress(++i / objects.length, `rm: "${path}"`);
-			}
-
-			const tree = await gitWriteTree();
-
-			const commit = await gitCommitTree(tree, `rmdir: ${path}`);
-
-			await gitUpdateRef(commit);
-
-			return {
-				tree,
-				commit
-			};
+		const objects: TreeItem[] = await gitLsTree(path, true);
+		let i = 0;
+		for (const {path} of objects) {
+			await gitRemoveBlobFromIndex(path);
+			onProgress(++i / objects.length, `rm: "${path}"`);
 		}
+
+		const tree: string = await gitWriteTree();
+
+		const commit: string = await gitCommitTree(tree, `rmdir: ${path}`);
+
+		await gitUpdateRef(commit);
+
+		return {
+			tree,
+			commit
+		};
+
 	}
 
-	async function cp(fromPath, toPath, onProgress = logProgress) {
-		const fromType = await gitType(fromPath);
+	async function cp(fromPath: string, toPath: string, onProgress: LogProgress = logProgress): Promise<{ tree: string, commit: string }> {
+		const fromType: string | undefined = await gitType(fromPath);
 		if (!fromType) throw new Error(`cp: "${fromPath}" does not exist`);
 
-		const toType = await gitType(toPath);
+		const toType: string | undefined = await gitType(toPath);
 		if (toType) throw new Error(`cp: "${toPath}" already exists`);
 
 		if (fromType === 'blob') {
-			const object = await gitRevParse(fromPath);
+			const object: string = await gitRevParse(fromPath);
 			await gitAddBlobToIndex(object, toPath);
 		} else { // tree
-			const objects = await gitLsTree(fromPath, true);
-			let i = 0;
+			const objects: TreeItem[] = await gitLsTree(fromPath, true);
+			let i: number = 0;
 			for (const {hash: object, relPath, path: oldPath} of objects) {
-				const newPath = join(toPath, relPath);
+				const newPath: string = join(toPath, relPath);
 				await gitAddBlobToIndex(object, newPath);
 				onProgress(++i / objects.length, `cp: "${oldPath}" --> "${newPath}"`);
 			}
 		}
 
-		const tree = await gitWriteTree();
+		const tree: string = await gitWriteTree();
 
-		const commit = await gitCommitTree(tree, `cp: "${fromPath}" --> "${toPath}"`);
+		const commit: string = await gitCommitTree(tree, `cp: "${fromPath}" --> "${toPath}"`);
 
 		await gitUpdateRef(commit);
 
@@ -333,23 +364,23 @@ export default async (repository, branch) => {
 		};
 	}
 
-	async function mv(fromPath, toPath, onProgress = logProgress) {
-		const fromType = await gitType(fromPath);
+	async function mv(fromPath: string, toPath: string, onProgress: LogProgress = logProgress): Promise<{ tree: string, commit: string }> {
+		const fromType: string | undefined = await gitType(fromPath);
 		if (!fromType) throw new Error(`cp: "${fromPath}" does not exist`);
 
-		const toType = await gitType(toPath);
+		const toType: string | undefined = await gitType(toPath);
 		if (toType) throw new Error(`cp: "${toPath}" already exists`);
 
 		if (fromType === 'blob') {
-			const object = await gitRevParse(fromPath);
+			const object: string = await gitRevParse(fromPath);
 			await gitAddBlobToIndex(object, toPath);
 			await gitRemoveBlobFromIndex(fromPath);
 		} else { // tree
-			const objects = await gitLsTree(fromPath, true);
+			const objects: TreeItem[] = await gitLsTree(fromPath, true);
 			let i = 0;
 			for (const {hash: object, relPath, path: oldPath} of objects) {
 				i++;
-				const newPath = join(toPath, relPath);
+				const newPath: string = join(toPath, relPath);
 				try {
 					await gitAddBlobToIndex(object, newPath);
 					await gitRemoveBlobFromIndex(oldPath);
@@ -360,9 +391,9 @@ export default async (repository, branch) => {
 			}
 		}
 
-		const tree = await gitWriteTree();
+		const tree: string = await gitWriteTree();
 
-		const commit = await gitCommitTree(tree, `mv: "${fromPath}" --> "${toPath}"`);
+		const commit: string = await gitCommitTree(tree, `mv: "${fromPath}" --> "${toPath}"`);
 
 		await gitUpdateRef(commit);
 
@@ -372,10 +403,10 @@ export default async (repository, branch) => {
 		};
 	}
 
-	async function search(text, path) {
-		const regExp = new RegExp(text, 'i');
+	async function search(text: string, path: string): Promise<SearchResult[]> {
+		const regExp: RegExp = new RegExp(text, 'i');
 
-		const all = await gitLsTree(path, true);
+		const all: TreeItem[] = await gitLsTree(path, true);
 
 		return all.map(({name, path}) => ({
 			type: name === '.dir' ? 'folder' : 'file',
@@ -389,7 +420,7 @@ export default async (repository, branch) => {
 
 	return {
 		setUser,
-		modified,
+		modified: gitModified,
 		type,
 		exists,
 		save,

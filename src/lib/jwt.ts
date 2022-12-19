@@ -2,21 +2,21 @@ import jwt from 'jsonwebtoken';
 
 const {JWT_SECRET = 'secret'} = process.env;
 
-const sign = obj => {
+const sign = (payload: any): Promise<string> => {
 	return new Promise((resolve, reject) => {
-		jwt.sign(obj, JWT_SECRET, (err, token) => {
+		jwt.sign(payload, JWT_SECRET, (err, token) => {
 			if (err) reject(err);
 			else resolve(token);
 		});
 	});
 };
 
-const verify = token => {
-	return new Promise((resolve) => {
-		jwt.verify(token, JWT_SECRET, (err, data) => {
+const verify = (token: string): Promise<any | void> => {
+	return new Promise((resolve: (value?: any) => void) => {
+		jwt.verify(token, JWT_SECRET, (err: Error, data?: any): void => {
 			if (err) {
 				console.error(err);
-				resolve(null);
+				resolve();
 			} else {
 				resolve(data);
 			}
