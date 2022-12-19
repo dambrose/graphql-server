@@ -1,7 +1,6 @@
-export default authorization => {
-	const [prefix, token, undef] = authorization?.split(' ') ?? [];
+export default (authorization: string): string | undefined => {
+	const [prefix, token, undef]: string[] = authorization?.split(' ') ?? [];
 
-	if (prefix === 'Bearer' && typeof token === 'string' && undef === undefined) {
+	if (prefix === 'Bearer' && typeof token === 'string' && undef === undefined)
 		return token;
-	}
 };

@@ -80,7 +80,6 @@ describe('transaction', () => {
 		} catch (err) {
 			//console.error(err.message);
 		}
-		console.log(array.join(''));
 
 		expect(array.join('')).toBe('456');
 
