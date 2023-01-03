@@ -246,7 +246,7 @@ export default async (repository: string, branch: string): Promise<GitDb> => {
 		}
 	}
 
-	async function save(data: string | NodeJS.ReadableStream, filePath: string): Promise<{ object: string, tree: string, commit: string }> {
+	async function save(filePath: string, data: string | NodeJS.ReadableStream): Promise<{ object: string, tree: string, commit: string }> {
 
 		const dir: string = dirname(filePath);
 
