@@ -1,12 +1,23 @@
 import {describe, expect, test} from '@jest/globals';
 
-import transaction from '../src/lib/transaction.js';
+import transaction, {transactions} from '../src/lib/transaction.js';
 
 describe('transaction', () => {
 
+	test('abc', async () => {
+
+		const array = await transaction(() => Promise.all([
+			timeout(() => 'a', 300),
+			timeout(() => 'b', 200),
+			timeout(() => 'c', 100)
+		]));
+		expect(array.join('')).toBe('abc');
+
+	});
+
 	test('123', async () => {
 
-		let array = [];
+		const array = [];
 
 		const t1 = transaction(async () => {
 			const a = [];
@@ -24,7 +35,7 @@ describe('transaction', () => {
 
 	test('123456', async () => {
 
-		let array = [];
+		const array = [];
 
 		const t1 = transaction(async () => {
 			const a = [];
@@ -42,9 +53,15 @@ describe('transaction', () => {
 			array.push(...a);
 		});
 
+		expect(transactions.length).toBe(2);
+
 		await t1;
+
+		expect(transactions.length).toBe(1);
+
 		await t2;
 
+		expect(transactions.length).toBe(0);
 		expect(array.join('')).toBe('123456');
 
 	});
@@ -56,7 +73,7 @@ describe('transaction', () => {
 		const t1 = transaction(async () => {
 			const a = [];
 			a.push(await timeout(() => '1', 300));
-			a.push(await timeout(() => 'a', 200));
+			a.push(await timeout(() => 'e', 200));
 			a.push(await timeout(() => '3', 100));
 			array.push(...a);
 		});
@@ -87,11 +104,11 @@ describe('transaction', () => {
 
 });
 
-function timeout(func, delay) {
+function timeout(func: () => string, delay: number) {
 	return new Promise((resolve, reject) => {
 		setTimeout(() => {
 			const res = func();
-			if (res === 'a') reject(new Error('Error a'));
+			if (res === 'e') reject(new Error('Error e'));
 			resolve(res);
 		}, delay);
 	});
