@@ -13,11 +13,18 @@ export default {
 		upload(_, {files}) {
 			return Promise.all(files.map(handleUpload));
 		},
-		async save(_, {path, file}, {name, email}) {
+		async saveFile(_, {path, file}, {name, email}) {
 			const {createReadStream} = await file;
 			await transaction(async () => {
 				await db.setUser(name, email);
-				await db.save(createReadStream(), path);
+				await db.save(path, createReadStream());
+			});
+			return true;
+		},
+		async save(_, {path, data}, {name, email}) {
+			await transaction(async () => {
+				await db.setUser(name, email);
+				await db.save(path, data);
 			});
 			return true;
 		},
